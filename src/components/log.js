@@ -1,54 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 
-const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const navigate = useNavigate();
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const auth = getAuth();
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Fetch user role from custom claims or Firestore
-      const idTokenResult = await user.getIdTokenResult();
-      const role = idTokenResult.claims.role || "general-admin"; // Default role
-
-      if (role === "super-admin") {
-        navigate("/super-admin-dashboard");
-      } else if (role === "general-admin") {
-        navigate("/general-admin-dashboard");
-      } else {
-        alert("Unauthorized user role");
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Login failed: " + error.message);
-    }
-  };
-
+const Form = () => {
   return (
     <StyledWrapper>
       <div className="container">
         <div className="left">
-        <h2>Login</h2>
-          <form className="form" onSubmit={handleLogin}>
+          <form className="form">
             <div className="input-block">
-              <input className="input" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+              <input className="input" type="text" id="email" required />
               <label htmlFor="email">Username</label>
             </div>
             <div className="input-block">
-              <input className="input" id="pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <input className="input" type="password" id="pass" required />
               <label htmlFor="pass">Password</label>
             </div>
             <div className="input-block">
-              <button type="submit">Submit</button>
+              <span className="forgot"><a href="#">Forgot Password?</a></span>
+              <button>Submit</button>
             </div>
           </form>
         </div>
@@ -115,10 +84,6 @@ const StyledWrapper = styled.div`
     border-radius: 15px;
     box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.03);
     border: 0.1px solid rgba(128, 128, 128, 0.178);
-        max-width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 3rem;
   }
 
   .left {
@@ -238,66 +203,4 @@ const StyledWrapper = styled.div`
       4px 4px 4px rgba(218, 218, 218, 0.13);
   }`;
 
-  export default LoginPage;
-
-
-
-// import React, { useState } from "react";
-// import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-// import { useNavigate } from "react-router-dom";
-
-// const LoginPage = () => {
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const navigate = useNavigate();
-
-//   const handleLogin = async (e) => {
-//     e.preventDefault();
-//     const auth = getAuth();
-
-//     try {
-//       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-//       const user = userCredential.user;
-
-//       // Fetch user role from custom claims or Firestore
-//       const idTokenResult = await user.getIdTokenResult();
-//       const role = idTokenResult.claims.role || "general-admin"; // Default role
-
-//       if (role === "super-admin") {
-//         navigate("/super-admin-dashboard");
-//       } else if (role === "general-admin") {
-//         navigate("/general-admin-dashboard");
-//       } else {
-//         alert("Unauthorized user role");
-//       }
-//     } catch (error) {
-//       console.error("Login failed:", error);
-//       alert("Login failed: " + error.message);
-//     }
-//   };
-
-//   return (
-//     <div>
-//       <h2>Login</h2>
-//       <form onSubmit={handleLogin}>
-//         <input
-//           type="email"
-//           placeholder="Email"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//           required
-//         />
-//         <input
-//           type="password"
-//           placeholder="Password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//           required
-//         />
-//         <button type="submit">Login</button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default LoginPage;
+export default Form;

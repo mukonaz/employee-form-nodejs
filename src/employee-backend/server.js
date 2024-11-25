@@ -17,6 +17,8 @@ admin.initializeApp({
 });
 const db = admin.firestore();
 
+const adminsCollection = db.collection("admins");
+
 const authenticate = async (req, res, next) => {
     const token = req.headers.authorization?.split("Bearer ")[1];
     if (!token) {
@@ -33,35 +35,91 @@ const authenticate = async (req, res, next) => {
   };
   
   // Protect route to add admin
-  app.post("/create-admin", authenticate, async (req, res) => {
-    if (req.user.role !== "super-admin") {
+  app.post("/add-admin", async (req, res) => {
+        if (req.user.role !== "super-admin") {
       return res.status(403).send("Only super-admins can add other admins");
     }
-  
-    const { email, password, role } = req.body;
     try {
-      const userRecord = await auth().createUser({ email, password });
-      await auth().setCustomUserClaims(userRecord.uid, { role });
-      res.status(201).send("Admin created successfully");
+      const { name, surname, age, idNumber, photo, role, email, password } = req.body;
+  
+      // Validate required fields
+      if (!name || !surname || !age || !idNumber || !photo || !role || !email || !password) {
+        return res.status(400).send("Missing required fields");
+      }
+  
+      // Check if email already exists
+      const snapshot = await adminsCollection.where("email", "==", email).get();
+      if (!snapshot.empty) {
+        return res.status(400).send("Email already exists");
+      }
+  
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      const newAdmin = {
+        name,
+        surname,
+        age: parseInt(age, 10),
+        idNumber,
+        photo,
+        role,
+        email,
+        password: hashedPassword, // Store hashed password
+      };
+  
+      await adminsCollection.add(newAdmin);
+      res.status(201).send("General Admin added successfully");
     } catch (error) {
-      res.status(500).send("Error creating admin: " + error.message);
+      console.error("Error adding admin:", error);
+      res.status(500).send("Error adding admin");
     }
   });
-  
-  // Fetch all admins
-  app.get("/admins", authenticate, async (req, res) => {
-    if (req.user.role !== "super-admin") {
-      return res.status(403).send("Only super-admins can view admins");
+
+        
+// Route to fetch all General Admins
+app.get("/admins", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(403).send("Access denied. No token provided.");
     }
-  
-    try {
-      const snapshot = await db.collection("admins").get();
-      const admins = snapshot.docs.map(doc => doc.data());
-      res.json(admins);
-    } catch (error) {
-      res.status(500).send("Error fetching admins: " + error.message);
+
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    if (decodedToken.role !== "superadmin") {
+      return res.status(403).send("Access denied. Not a superadmin.");
     }
-  });
+
+    const snapshot = await db.collection("admins").get();
+    const admins = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(admins);
+  } catch (error) {
+    console.error("Error fetching admins:", error);
+    res.status(500).send("Error fetching admins.");
+  }
+});
+
+
+// Route to fetch a specific General Admin by ID
+app.get("/admin/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await adminsCollection.doc(id).get();
+
+    if (!doc.exists) {
+      return res.status(404).send("Admin not found");
+    }
+
+    const adminData = doc.data();
+
+    // Exclude the password from the response
+    const { password, ...adminWithoutPassword } = adminData;
+
+    res.json({ id: doc.id, ...adminWithoutPassword });
+  } catch (error) {
+    console.error("Error fetching admin:", error);
+    res.status(500).send("Error fetching admin");
+  }
+});
 
 // Route to get all employees
 app.get("/employees", async (req, res) => {
